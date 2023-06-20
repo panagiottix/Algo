@@ -1,0 +1,71 @@
+import pandas as pd
+import openpyxl
+from openpyxl import load_workbook
+
+xlsx = pd.ExcelFile(r'result.xlsx')
+df1 = pd.read_excel(xlsx, sheet_name = 'first', index_col=0)  #Einlesen der Dataframes aus Excel
+df2 = pd.read_excel(xlsx, sheet_name = 'last', index_col=0)
+
+#Hier die grundlegenden Parameter eintragen
+Top = 8
+Assets = 24
+Longif = 16
+Shortif = 8
+Longweight = 1
+Shortweight = -1
+
+
+print(df1)
+print(df2)
+#Überprüfen, ob Input Datenblätter valide
+
+count_row_df1 = df1.shape[0]  # Anzahl Zeilen Dataframe1
+count_col_df1 = df1.shape[1]  # Anzahl Spalten Dataframe1
+
+count_row_df2 = df2.shape[0]  # # Anzahl Zeilen Dataframe2
+count_col_df2 = df2.shape[1]  # # Anzahl Spalten Dataframe2
+
+
+if (count_row_df1 != count_row_df2) or (count_col_df1 != count_col_df2):
+    print("Eingangsmatritzen besitzen nicht die gleiche Größe")
+    raise SystemExit
+
+#Berechne die Steigung
+Steigung = df2.div(df1)
+
+print(Steigung) #Gib Steigung aus
+
+#Berechne Rang
+Rang = (1/Steigung).rank(axis = 1, method='min')
+
+print(Rang)
+
+Return = [[] for i in range(count_row_df1)]
+
+for i in range(count_row_df1):
+    for j in range(count_col_df1):
+        if i == 0:
+            Return[i].append("")
+        else:
+            Return[i].append((df2.iat[i,j]-df2.iat[i-1,j])/df1.iat[i,j])
+
+ReturnDF = pd.DataFrame(Return, index =df1.index)
+ReturnDF.columns = df1.columns
+print(ReturnDF)
+
+
+Signal = [[] for i in range(count_row_df1)]
+
+for i in range(count_row_df1):
+    for j in range(count_col_df1):
+        if Rang.iat[i,j]>Longif:
+            Signal[i].append(Longweight)
+        else:
+            if Rang.iat[i,j]<=Shortif:
+                Signal[i].append(Shortweight)
+            else:
+                Signal[i].append(0)
+
+SignalDF = pd.DataFrame(Signal, index =df1.index)
+SignalDF.columns = df1.columns
+print(SignalDF)
